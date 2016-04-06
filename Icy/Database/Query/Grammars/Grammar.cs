@@ -7,7 +7,7 @@ using BaseGrammar = Icy.Database.Grammar;
 
 namespace Icy.Database.Query.Grammars
 {
-    // 770cd01  18 Nov circa
+    // 4ef3588  2 Apr, 2016
     public class Grammar: BaseGrammar
     {
         /**
@@ -141,6 +141,18 @@ namespace Icy.Database.Query.Grammars
             string[] sql = new string[0];
             foreach (JoinClause join in joins) {
                 string table = this.wrapTable(join._table);
+
+                string type = join._type;
+                
+                // Cross joins generate a cartesian product between the first table and the
+                // joined table. Since they don't expect any "on" clauses to perform the
+                // join, we append the SQL and jump to the next iteration of the loop.
+                if (type == "cross") {
+                    sql = ArrayUtil.push(sql, "cross join " + table);
+                    
+                    continue;
+                }
+
                 // First we need to build all of the "on" clauses for the join. There may be many
                 // of these clauses so we will need to iterate through each one and build them
                 // separately, then we'll join them up into a single string when we're done.

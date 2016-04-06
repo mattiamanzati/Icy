@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using Icy.Database.Query;
+using BaseGrammar = Icy.Database.Query.Grammars.Grammar;
+using BaseProcessor = Icy.Database.Query.Processors.Processor;
 
 namespace Icy.Database
 {
@@ -132,5 +134,8 @@ namespace Icy.Database
          * @return array
          */
         QueryLogItem[] pretend(Func<Connection, object> callback);
+
+        BaseGrammar getQueryGrammar();
+        BaseProcessor getPostProcessor(); 
     }
 }

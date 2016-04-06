@@ -15,15 +15,11 @@ namespace IcyUnitTest
 
         protected Builder getBuilder()
         {
-            BaseGrammar grammar = new BaseGrammar();
-            BaseProcessor processor = new BaseProcessor();
-            return new Builder(new Connection(null), grammar, processor);
+            return new Builder(new Connection(null));
         }
         protected Builder getSqlServerBuilder()
         {
-            BaseGrammar grammar = new SqlServerGrammar();
-            BaseProcessor processor = new SqlServerProcessor();
-            return new Builder(new SqlServerConnection(null), grammar, processor);
+            return new Builder(new SqlServerConnection(null));
         }
 
         [TestMethod]

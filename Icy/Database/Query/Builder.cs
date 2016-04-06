@@ -52,7 +52,7 @@ namespace Icy.Database.Query
         public bool all;
     }
 
-    // 933c860  Jan 26, 2016
+    // 99bc4c3  Apr 1, 2016
     public class Builder
     {
 
@@ -256,10 +256,10 @@ namespace Icy.Database.Query
          * @param  \Illuminate\Database\Query\Processors\Processor  $processor
          * @return void
          */
-        public Builder(ConnectionInterface connection, BaseGrammar grammar, BaseProcessor processor)
+        public Builder(ConnectionInterface connection, BaseGrammar grammar = null, BaseProcessor processor = null)
         {
-            this._grammar = grammar;
-            this._processor = processor;
+            this._grammar = grammar ?? connection.getQueryGrammar();
+            this._processor = processor ?? connection.getPostProcessor();
             this._connection = connection;
         }
 
@@ -542,19 +542,50 @@ namespace Icy.Database.Query
             return this.join(table, callback, operator1, two, "right", true);
         }
 
-        
-        /**
-         * Add a basic where clause to the query.
-         *
-         * @param  string|array|\Closure  $column
-         * @param  string  $operator
-         * @param  mixed   $value
-         * @param  string  $boolean
-         * @return $this
-         *
-         * @throws \InvalidArgumentException
-         */
-        public virtual Builder where(Dictionary<object, object> column, string operator1 = null, object value = null, string boolean = "and")
+             /**
+     * Add a "cross join" clause to the query.
+     *
+     * @param  string  $table
+     * @return \Illuminate\Database\Query\Builder|static
+     */
+    public virtual Builder crossJoin(string table)
+    {
+        this._joins = ArrayUtil.push(this._joins, new JoinClause("cross", table));
+
+        return this;
+    }
+
+    /**
+     * Apply the callback's query changes if the given "value" is true.
+     *
+     * @param  bool  $value
+     * @param  \Closure  $callback
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public virtual Builder when(bool value, Func<Builder, Builder> callback)
+    {
+        var builder = this;
+
+        if (value) {
+                    builder = callback(builder);
+                }
+
+        return builder;
+    }
+
+    /**
+     * Add a basic where clause to the query.
+     *
+     * @param  string|array|\Closure  $column
+     * @param  string  $operator
+     * @param  mixed   $value
+     * @param  string  $boolean
+     * @return $this
+     *
+     * @throws \InvalidArgumentException
+     */
+
+    public virtual Builder where(Dictionary<object, object> column, string operator1 = null, object value = null, string boolean = "and")
         {
             // If the column is an array, we will assume it is an array of key-value pairs
             // and can add them each as a where clause. We will maintain the boolean we
@@ -604,15 +635,17 @@ namespace Icy.Database.Query
             return this.whereNested(query, boolean);
         }
 
-        public virtual Builder where(object column, string operator1 = null, Action<Builder> value = null, string boolean = "and"){
-            // If the value is a Closure, it means the developer is performing an entire
-            // sub-select within the query and we will need to compile the sub-select
-            // within the where clause to get the appropriate query record results.
-            return this.whereSub(column, operator1, value, boolean);
-        }
 
         public virtual Builder where(object column, string operator1 = null, object value = null, string boolean = "and")
         {
+            if(value is Action<Builder>)
+            {
+                // If the value is a Closure, it means the developer is performing an entire
+                // sub-select within the query and we will need to compile the sub-select
+                // within the where clause to get the appropriate query record results.
+                return this.whereSub(column, operator1, value as Action<Builder>, boolean);
+            }
+
             // If the value is "null", we will just assume the developer wants to add a
             // where null clause to the query. So, we will allow a short-cut here to
             // that method for convenience so the developer doesn't have to check.
@@ -1472,14 +1505,30 @@ namespace Icy.Database.Query
             return this.skip((page - 1) * perPage).take(perPage);
         }
 
-        /**
-         * Add a union statement to the query.
-         *
-         * @param  \Illuminate\Database\Query\Builder|\Closure  $query
-         * @param  bool  $all
-         * @return \Illuminate\Database\Query\Builder|static
-         */
-        public virtual Builder union(Action<Builder> callback, bool all = false){
+             /**
+     * Constrain the query to the next "page" of results after a given ID.
+     *
+     * @param  int  $perPage
+     * @param  int  $lastId
+     * @param  string  $column
+     * @return \Illuminate\Database\Query\Builder|static
+     */
+    public virtual Builder forPageAfterId(int perPage = 15, int lastId = 0, string column = "id")
+    {
+        return this.select(column)
+                    .where(column, ">", lastId)
+                    .orderBy(column, "asc")
+                    .take(perPage);
+    }
+
+    /**
+     * Add a union statement to the query.
+     *
+     * @param  \Illuminate\Database\Query\Builder|\Closure  $query
+     * @param  bool  $all
+     * @return \Illuminate\Database\Query\Builder|static
+     */
+    public virtual Builder union(Action<Builder> callback, bool all = false){
             Builder query = this.newQuery();
             callback(query);
             return this.union(query, all);
@@ -1736,16 +1785,43 @@ namespace Icy.Database.Query
             return true;
         }
 
-     /**
-      * Execute a callback over each item.
-      *
-      * We're also saving memory by chunking the results into memory.
-      *
-      * @param  callable  $callback
-      * @param  int  $count
-      * @return bool
-      */
-     public virtual bool each(Func<Dictionary<string, object>, int, bool> callback, int count = 1000)
+             /**
+     * Chunk the results of a query by comparing numeric IDs.
+     *
+     * @param  int  $count
+     * @param  callable  $callback
+     * @param  string  $column
+     * @return bool
+     */
+    public virtual bool chunkById(int count, Func<Dictionary<string, object>[], bool> callback, string column = "id")
+    {
+        int lastId;
+
+        var results = this.forPageAfterId(count, 0, column).get();
+
+        while (results.Length != 0) {
+            if (callback(results) == false) {
+                return false;
+            }
+
+            lastId = (int)results[results.Length - 1][column];
+
+            results = this.forPageAfterId(count, lastId, column).get();
+        }
+
+        return true;
+    }
+
+    /**
+     * Execute a callback over each item.
+     *
+     * We're also saving memory by chunking the results into memory.
+     *
+     * @param  callable  $callback
+     * @param  int  $count
+     * @return bool
+     */
+    public virtual bool each(Func<Dictionary<string, object>, int, bool> callback, int count = 1000)
      {
 
          if ((this._orders == null || this._orders.Length == 0) && (this._unionOrders == null || this._unionOrders.Length == 0))
@@ -2034,15 +2110,35 @@ namespace Icy.Database.Query
             return this._connection.update(sql, this.cleanBindings(bindings));
         }
 
-        /**
-         * Increment a column's value by a given amount.
-         *
-         * @param  string  $column
-         * @param  int     $amount
-         * @param  array   $extra
-         * @return int
-         */
-        public int increment(string column, int amount = 1, Dictionary<string, object> extra = null)
+             /**
+     * Insert or update a record matching the attributes, and fill it with values.
+     *
+     * @param  array  $attributes
+     * @param  array  $values
+     * @return bool
+     */
+    public bool updateOrInsert(Dictionary<string, object> attributes, Dictionary<string, object> values = null)
+    {
+        values = values ?? new Dictionary<string, object>();
+        values = DictionaryUtil.normalize(values);
+        attributes = DictionaryUtil.normalize(attributes);
+
+        if (! this.where(attributes).exists()) {
+            return this.insert(DictionaryUtil.merge(attributes, values));
+        }
+
+        return this.where(attributes).take(1).update(values) > 0;
+    }
+
+    /**
+     * Increment a column's value by a given amount.
+     *
+     * @param  string  $column
+     * @param  int     $amount
+     * @param  array   $extra
+     * @return int
+     */
+    public int increment(string column, int amount = 1, Dictionary<string, object> extra = null)
         {
             extra = extra ?? new Dictionary<string, object>();
 
