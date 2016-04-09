@@ -158,7 +158,7 @@ namespace Icy.Database
             if (bindings != null)
             {
                 for(var i = 0; i < bindings.Length; i++){
-                    command.Parameters.AddWithValue("p" + i, bindings[i]);
+                    command.Parameters.AddWithValue("p" + i, bindings[i] == null ? DBNull.Value : bindings[i]);
                 }
             }
 
