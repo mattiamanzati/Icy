@@ -79,7 +79,6 @@
     <Compile Include="Support\Collection.cs" />
     <Compile Include="Support\IArrayable.cs" />
     <Compile Include="Util\ArrayUtil.cs" />
-    <Compile Include="Util\ContextResolver.cs" />
     <Compile Include="Util\DictionaryUtil.cs" />
     <Compile Include="Util\StrUtil.cs" />
   </ItemGroup>

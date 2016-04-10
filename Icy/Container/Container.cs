@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Text;
 using Icy.Util;
+using System.Reflection;
 
 namespace Icy.Container
 {
 
     public struct ContainerBindingsOptions
     {
-        public Func<Container, object[], object> concrete;
+        public Func<Container, Dictionary<string, object>, object> concrete;
         public bool shared;
     }
 
@@ -20,7 +21,8 @@ namespace Icy.Container
          *
          * @var static
          */
-        protected static IContainer _instance;
+        /// COULD BREAK THINGS! DO NOT USE PLEASE! D:
+        //protected static IContainer _instance;
         /**
          * An array of the types that have been resolved.
          *
@@ -184,12 +186,17 @@ public function when($concrete)
          * @return void
          */
 
-        public void bind<TAbstract, TConcrete>(Func<Container, object[], object> concrete = null, bool shared = false) where TConcrete : TAbstract
+        public void bind<TAbstract, TConcrete>(Func<Container, Dictionary<string, object>, object> concrete = null, bool shared = false) where TConcrete : TAbstract
         {
             this.bind(typeof(TAbstract), concrete == null ? this.getClosure(typeof(TAbstract), typeof(TConcrete)) : concrete, shared);
         }
 
-        public void bind(Type abstracts, Func<Container, object[], object> concrete = null, bool shared = false)
+        public void bind(Type abstracts, Type concrete, bool shared = false)
+        {
+            this.bind(abstracts, this.getClosure(abstracts, concrete), shared);
+        }
+
+        public void bind(Type abstracts, Func<Container, Dictionary<string, object>, object> concrete = null, bool shared = false)
         {
             // If no concrete type was given, we will simply set the concrete type to the
             // abstract type. This will allow concrete type to be registered as shared
@@ -198,7 +205,7 @@ public function when($concrete)
             // If the factory is not a Closure, it means it is just a class name which is
             // bound into this container to the abstract type and we will just wrap it
             // up inside its own Closure to give us more convenience when extending.
-            //if (!(concrete is Func<Container, object[], object>)) {
+            //if (!(concrete is Func<Container, Dictionary<string, object>, object>)) {
             //    concrete = this.getClosure(abstracts, concrete);
             //}
             this._bindings[abstracts] = new ContainerBindingsOptions() { concrete = concrete, shared = shared };
@@ -220,7 +227,7 @@ public function when($concrete)
          * @return \Closure
          */
 
-        protected Func<Container, object[], object> getClosure(Type abstracts, Type concrete)
+        protected Func<Container, Dictionary<string, object>, object> getClosure(Type abstracts, Type concrete)
         {
             return (c, parameters) =>
             {
@@ -242,12 +249,12 @@ public function when($concrete)
      * @param  bool  $shared
      * @return void
      */
-        public void bindIf<TAbstract, TConcrete>(Func<Container, object[], object> concrete = null, bool shared = false) where TConcrete : TAbstract
+        public void bindIf<TAbstract, TConcrete>(Func<Container, Dictionary<string, object>, object> concrete = null, bool shared = false) where TConcrete : TAbstract
         {
             this.bindIf(typeof(TAbstract), concrete, shared);
         }
 
-        public void bindIf(Type abstracts, Func<Container, object[], object> concrete = null, bool shared = false)
+        public void bindIf(Type abstracts, Func<Container, Dictionary<string, object>, object> concrete = null, bool shared = false)
         {
             if (!this.bound(abstracts))
             {
@@ -261,7 +268,7 @@ public function when($concrete)
          * @param  \Closure|string|null  $concrete
          * @return void
          */
-        public void singleton<TAbstract, TConcrete>(Func<Container, object[], object> concrete = null) where TConcrete : TAbstract
+        public void singleton<TAbstract, TConcrete>(Func<Container, Dictionary<string, object>, object> concrete = null) where TConcrete : TAbstract
         {
             this.bind(typeof(TAbstract), concrete, true);
         }
@@ -420,14 +427,14 @@ public function when($concrete)
      * @param  array   $parameters
      * @return mixed
      */
-        public TAbstract make<TAbstract>(object[] parameters = null)
+        public TAbstract make<TAbstract>(Dictionary<string, object> parameters = null)
         {
             return (TAbstract)this.make(typeof(TAbstract), parameters);
         }
 
-        public object make(object t, object[] parameters = null)
+        public object make(object t, Dictionary<string, object> parameters = null)
         {
-            parameters = parameters ?? new object[0];
+            parameters = parameters ?? new Dictionary<string, object>();
             object inst = null;
             Type type = null;
             if (t is Type) type = (Type)t;
@@ -503,7 +510,7 @@ public function when($concrete)
          */
         protected bool isBuildable(object concrete, object abstracts)
         {
-            return concrete == abstracts || concrete is Func<Container, object[], object>;
+            return concrete == abstracts || concrete is Func<Container, Dictionary<string, object>, object>;
         }
 
         /**
@@ -515,28 +522,183 @@ public function when($concrete)
  *
  * @throws \Illuminate\Contracts\Container\BindingResolutionException
  */
-        public object build(object concrete, object[] parameters = null)
+        public object build(object concrete, Dictionary<string, object> parameters = null)
         {
-            parameters = parameters ?? new object[0];
+            parameters = parameters ?? new Dictionary<string, object>();
             // If the concrete type is actually a Closure, we will just execute it and
             // hand back the results of the functions, which allows functions to be
             // used as resolvers for more fine-tuned resolution of these objects.
-            if (concrete is Func<Container, object[], object>)
+            if (concrete is Func<Container, Dictionary<string, object>, object>)
             {
-                return ((Func<Container, object[], object>)concrete)(this, parameters);
+                return ((Func<Container, Dictionary<string, object>, object>)concrete)(this, parameters);
             }
 
-            Type type = (Type)concrete;
+            Type concrete1 = (Type)concrete;
 
-            if (type.IsAbstract)
+            if (concrete1.IsAbstract)
             {
-                throw new Exception(string.Format("Target {0} is not instantiable."));
+                string message;
+                if (this._buildStack.Length > 0)
+                {
+                    message = string.Format("Target {0} is not instantiable while building {1}.", concrete1, ArrayUtil.map(this._buildStack, item => item.ToString()));
+                }
+                else
+                {
+                    message = string.Format("Target {0} is not instantiable.", concrete1);
+                }
+                throw new Exception(message);
             }
+
+            this._buildStack = ArrayUtil.push(this._buildStack, concrete1);
+
+            // pick constructors
+            // DIFF: we filter out constructor with lower number of arguments than the given ones
+            var constructors = ArrayUtil.filter(concrete1.GetConstructors(), constructor => constructor.GetParameters().Length >= parameters.Count);
+
+            // If there are no constructors, that means there are no dependencies then
+            // we can just resolve the instances of the objects right away, without
+            // resolving any other types or dependencies out of these containers.
+            if (constructors.Length == 0)
+            {
+                this._buildStack = ArrayUtil.pop(this._buildStack);
+                return Activator.CreateInstance(concrete1, parameters);
+            }
+            else if (constructors.Length > 1)
+            {
+                // TODO: attempt to find a constructor by matching the giver parameters types with the tail of the parameters
+                throw new Exception("Calling unclear constructor.");
+            }
+
+            var dependencies = constructors[0].GetParameters();
+            // Once we have all the constructor's parameters we can create each of the
+            // dependency instances and then use the reflection instances to make a
+            // new instance of this class, injecting the created dependencies in.
+            var parameters1 = this.keyParametersByArgument(dependencies, parameters);
+            var instances = this.getDependencies(dependencies, parameters1);
+
+            ArrayUtil.pop(this._buildStack);
 
             // TODO: Dependency injection?
-            return Activator.CreateInstance(type, parameters);
+            return Activator.CreateInstance(concrete1, instances);
         }
 
+
+
+        /**
+         * If extra parameters are passed by numeric ID, rekey them by argument name.
+         *
+         * @param  array  $dependencies
+         * @param  array  $parameters
+         * @return array
+         */
+        protected Dictionary<string, object> keyParametersByArgument(ParameterInfo[] dependencies, Dictionary<string, object> parameters)
+        {
+            Dictionary<string, object> parameters1 = new Dictionary<string, object>();
+
+            foreach (var e in parameters)
+            {
+                if (StrUtil.isNumeric(e.Key))
+                {
+                    int i;
+                    if (Int32.TryParse(e.Key, out i))
+                    {
+                        parameters1[dependencies[i].Name] = e.Value;
+                        continue;
+                    }
+                }
+
+                parameters1[e.Key] = e.Value;
+            }
+            return parameters1;
+        }
+
+
+        /**
+         * Resolve all of the dependencies from the ReflectionParameters.
+         *
+         * @param  array  $parameters
+         * @param  array  $primitives
+         * @return array
+         */
+        protected object[] getDependencies(ParameterInfo[] parameters, Dictionary<string, object> primitives = null)
+        {
+            primitives = primitives ?? new Dictionary<string, object>();
+            var dependencies = new object[0];
+            foreach (var parameter in parameters)
+            {
+                var dependency = parameter.ParameterType;
+                // If the class is null, it means the dependency is a string or some other
+                // primitive type which we can not resolve since it is not a class and
+                // we will just bomb out with an error since we have no-where to go.
+                if (primitives.ContainsKey(parameter.Name))
+                {
+                    dependencies = ArrayUtil.push(dependencies, primitives[parameter.Name]);
+                }
+                else if (!(parameter.ParameterType.IsClass || parameter.ParameterType.IsInterface))
+                {
+                    dependencies = ArrayUtil.push(dependencies, this.resolveNonClass(parameter));
+                }
+                else
+                {
+                    dependencies = ArrayUtil.push(dependencies, this.resolveClass(parameter));
+                }
+            }
+            return dependencies;
+        }
+        /**
+         * Resolve a non-class hinted dependency.
+         *
+         * @param  \ReflectionParameter  $parameter
+         * @return mixed
+         *
+         * @throws \Illuminate\Contracts\Container\BindingResolutionException
+         */
+        protected object resolveNonClass(ParameterInfo parameter)
+        {
+            /*
+            TODO: Contextual binding
+            if (!is_null($concrete = $this->getContextualConcrete('$'.$parameter->name)))
+            {
+                if ($concrete instanceof Closure) {
+                    return call_user_func($concrete, $this);
+                } else {
+                    return $concrete;
+                }
+            }
+            */
+            if (parameter.HasDefaultValue)
+            {
+                return parameter.DefaultValue;
+            }
+            string message = string.Format("Unresolvable dependency resolving {0} in class {1}", parameter.Name, parameter.Member.DeclaringType.FullName);
+            throw new Exception(message);
+        }
+        /**
+         * Resolve a class based dependency from the container.
+         *
+         * @param  \ReflectionParameter  $parameter
+         * @return mixed
+         *
+         * @throws \Illuminate\Contracts\Container\BindingResolutionException
+         */
+        protected object resolveClass(ParameterInfo parameter)
+        {
+            try
+            {
+                return this.make(parameter.ParameterType);
+            }
+            // If we can not resolve the class instance, we will check to see if the value
+            // is optional, and if it is we will return the optional parameter value as
+            // the value of the dependency, similarly to how we do this with scalars.
+            catch (Exception e)
+            {
+                if (parameter.IsOptional)
+                {
+                    return parameter.DefaultValue;
+                }
+                throw e;
+            }
+        }
 
         /**
          * Determine if a given type is shared.

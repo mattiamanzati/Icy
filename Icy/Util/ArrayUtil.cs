@@ -28,7 +28,7 @@ namespace Icy.Util
             return concat<T>(current, args);
         }
 
-        public static T[] filter<T>(T[] current, Func<object, bool> matcher)
+        public static T[] filter<T>(T[] current, Func<T, bool> matcher)
         {
             // TODO: is a list really necessary? Should consider Array.Resize?
             List<T> result = new List<T>();
@@ -64,6 +64,20 @@ namespace Icy.Util
             for (var i = 0; i < current.Length; i++)
             {
                 result[i] = callback(current[i]);
+            }
+
+            return result;
+        }
+
+
+        public static T[] pop<T>(T[] current)
+        {
+            int length = current.Length > 0 ? current.Length - 1 : 0;
+            T[] result = new T[length];
+
+            for (var i = 0; i < length ; i++)
+            {
+                result[i] = current[i];
             }
 
             return result;

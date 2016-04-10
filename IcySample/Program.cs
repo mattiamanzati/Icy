@@ -11,31 +11,57 @@ using IcyApp = Icy.Foundation.Application;
 namespace IcySample
 {
 
+    interface IRoarrer
+    {
+        void roar();
+    }
+    interface ILion
+    {
+        void scarePeople();
+    }
+
+    class Roarrer: IRoarrer
+    {
+        public void roar()
+        {
+            Console.WriteLine("ROAR!!!");
+        }
+    }
+    class Lion : ILion
+    {
+        IRoarrer roarrer;
+        int volume;
+        string name;
+
+        public Lion(int volume = 50, IRoarrer test = null, string name = "Alex") {
+            this.volume = volume;
+            this.name = name;
+            this.roarrer = test; // HERE's THE MAGIC! IRoarrer is an passed automatically as instance of Roarrer
+        }
+
+        public void scarePeople()
+        {
+            Console.WriteLine(this.name + " the Lion is about to roar at " + this.volume.ToString() + "dB!");
+            this.roarrer.roar();
+        }
+    }
+
     class Program
     {
         static IcyApp app;
-        static DatabaseManager dm;
 
         static void Main(string[] args)
         {
             // initialize the app
             app = new IcyApp();
 
-            // put some config
-            app.config<ApplicationDatabaseConfig>().defaults = "test";
-            app.config<ApplicationDatabaseConfig>().connections["test"] = new ApplicationDatabaseConnectionConfig()
-            {
-                host = "localhost",
-                database = "TEST",
-                username = "sa",
-                password = "" 
-            };
+            app.bind<IRoarrer, Roarrer>();
+            app.bind<ILion, Lion>();
 
-            // initialize the database manager
-            dm = new DatabaseManager(app, new Icy.Database.Connectors.ConnectionFactory());
-
-            // perform queries! :D
-            dm.connection().query().select().from("table").where("column", "=", 1).first();
+            var i = app.make<ILion>(new Dictionary<string, object>() {
+                {"0", 100 } // change the volume to 100
+            });
+            i.scarePeople(); // OUTPUT: ROAR!!!
         }
     }
 }
