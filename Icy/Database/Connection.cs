@@ -74,6 +74,13 @@ namespace Icy.Database
          * @var int
          */
         protected int _fetchMode = 1;
+
+        /**
+         * The number of active transactions.
+         *
+         * @var int
+         */
+        protected int _transactions = 0;
         /**
          * All of the queries run against the connection.
          *
@@ -691,7 +698,7 @@ namespace Icy.Database
          */
         public virtual object getReadPdo()
         {
-            if (this.transactionLevel() >= 1) {
+            if (this._transactions >= 1) {
                 return this.getPdo();
             }
             return this._readPdo == null ? this.getPdo() : this._readPdo;
@@ -704,7 +711,7 @@ namespace Icy.Database
          */
         public virtual Connection setPdo(object pdo)
         {
-            if (this.transactionLevel() >= 1) {
+            if (this._transactions >= 1) {
                 throw new Exception("Can't swap PDO instance while within transaction.");
             }
             this._pdo = pdo;

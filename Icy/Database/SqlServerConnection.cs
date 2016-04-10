@@ -13,16 +13,13 @@ using SqlServerSchemaGrammar = Icy.Database.Schema.Grammars.SqlServerGrammar;
 
 namespace Icy.Database
 {
-
-    public class SqlClientContext
-    {
-        public SqlConnection pdo = null;
-        public SqlTransaction transaction = null;
-        public int transactions = 0;
-    }
-
     public class SqlServerConnection: Connection
     {
+        /*
+        * The actual transaction object
+        */
+        protected SqlTransaction _transaction = null;
+
         public SqlServerConnection(object pdo, string database = "", string tablePrefix = "", ApplicationDatabaseConnectionConfig config = default(ApplicationDatabaseConnectionConfig)) : base(pdo, database, tablePrefix, config) { }
 
         /**
@@ -55,50 +52,18 @@ namespace Icy.Database
             return new SqlServerProcessor();
         }
 
-
-        // overrides the getPdo and setPdo methods so they are "client-dependent" and use SQLServer pooling.
-        public override object getPdo()
-        {
-            SqlClientContext ctx = ContextResolver.resolve<SqlClientContext>();
-
-            if (ctx.pdo == null && this._pdo is Func<object>)
-            {
-                ctx.pdo = (SqlConnection)((Func<object>)this._pdo)();
-            }
-            return ctx.pdo;
-        }
-
-        public override Connection setPdo(object pdo)
-        {
-            SqlClientContext ctx = ContextResolver.resolve<SqlClientContext>();
-
-            if (ctx.transactions >= 1)
-            {
-                throw new Exception("Cannot swap PDO while in a transaction.");
-            }
-
-            ctx.pdo = (SqlConnection)pdo;
-            return this;
-        }
-
-        public override int transactionLevel()
-        {
-            return ContextResolver.resolve<SqlClientContext>().transactions;
-        }
-
         public override void beginTransaction()
         {
-            SqlClientContext ctx = ContextResolver.resolve<SqlClientContext>();
 
-            ++ctx.transactions;
+            ++this._transactions;
 
-            if (ctx.transactions == 1)
+            if (this._transactions == 1)
             {
-                ctx.pdo.BeginTransaction();
+                ((SqlConnection)this._pdo).BeginTransaction();
             }
-            else if (ctx.transactions > 1 && this._queryGrammar.supportsSavepoints())
+            else if (this._transactions > 1 && this._queryGrammar.supportsSavepoints())
             {
-                SqlCommand cmd = new SqlCommand(this._queryGrammar.compileSavepoint("trans" + ctx.transactions), ctx.pdo, ctx.transaction);
+                SqlCommand cmd = new SqlCommand(this._queryGrammar.compileSavepoint("trans" + this._transactions), (SqlConnection)this._pdo, this._transaction);
                 cmd.ExecuteNonQuery();
             }
 
@@ -107,40 +72,35 @@ namespace Icy.Database
 
         public override void commit()
         {
-            SqlClientContext ctx = ContextResolver.resolve<SqlClientContext>();
 
-            if (ctx.transactions == 1)
+            if (this._transactions == 1)
             {
-                ctx.transaction.Commit();
-                ctx.transaction = null;
+                this._transaction.Commit();
+                this._transaction = null;
             }
         }
 
         public override void rollBack()
         {
-            SqlClientContext ctx = ContextResolver.resolve<SqlClientContext>();
-
-            if (ctx.transactions == 1)
+            if (this._transactions == 1)
             {
-                ctx.transaction.Rollback();
-                ctx.transaction = null;
+                this._transaction.Rollback();
+                this._transaction = null;
             }
-            else if (ctx.transactions > 1 && this._queryGrammar.supportsSavepoints())
+            else if (this._transactions > 1 && this._queryGrammar.supportsSavepoints())
             {
-                SqlCommand cmd = new SqlCommand(this._queryGrammar.compileSavepointRollBack("trans" + ctx.transactions), ctx.pdo, ctx.transaction);
+                SqlCommand cmd = new SqlCommand(this._queryGrammar.compileSavepointRollBack("trans" + this._transactions), (SqlConnection)this._pdo, this._transaction);
                 cmd.ExecuteNonQuery();
             }
 
-            ctx.transactions = Math.Max(0, ctx.transactions - 1);
+            this._transactions = Math.Max(0, this._transactions - 1);
 
             // TODO: fire event
         }
 
         protected override bool causedByLostConnection(QueryException e)
         {
-            SqlClientContext ctx = ContextResolver.resolve<SqlClientContext>();
-
-            return ctx.pdo == null || ctx.pdo.State == System.Data.ConnectionState.Closed;
+            return this._pdo == null || ((SqlConnection)this._pdo).State == System.Data.ConnectionState.Closed;
         }
 
         protected virtual string replaceQuestionWithSnail(string query)
@@ -165,12 +125,6 @@ namespace Icy.Database
             return command;
         }
 
-        protected virtual SqlTransaction transactionObject()
-        {
-            SqlClientContext ctx = ContextResolver.resolve<SqlClientContext>();
-            return ctx.transaction;
-        }
-
         public override bool statement(string query, object[] bindings = null)
         {
             return this.run(query, bindings, (conn, query1, bindings1) =>
@@ -182,9 +136,9 @@ namespace Icy.Database
                     cmd.CommandText = this.replaceQuestionWithSnail(query1);
                     this.applySqlCommandBindings(cmd, bindings1);
 
-                    if (this.transactionLevel() > 0 && this.transactionObject() != null)
+                    if (this.transactionLevel() > 0 && this._transaction != null)
                     {
-                        cmd.Transaction = this.transactionObject();
+                        cmd.Transaction = this._transaction;
                     }
 
                     return cmd.ExecuteNonQuery() > 0;
@@ -204,9 +158,9 @@ namespace Icy.Database
                     cmd.CommandText = this.replaceQuestionWithSnail(query1);
                     this.applySqlCommandBindings(cmd, bindings1);
 
-                    if (this.transactionLevel() > 0 && this.transactionObject() != null)
+                    if (this.transactionLevel() > 0 && this._transaction != null)
                     {
-                        cmd.Transaction = this.transactionObject();
+                        cmd.Transaction = this._transaction;
                     }
 
                     return cmd.ExecuteNonQuery();
@@ -231,9 +185,9 @@ namespace Icy.Database
                     cmd.CommandText = this.replaceQuestionWithSnail(query1);
                     this.applySqlCommandBindings(cmd, bindings1);
 
-                    if (this.transactionLevel() > 0 && this.transactionObject() != null)
+                    if (this._transactions > 0 && this._transaction != null)
                     {
-                        cmd.Transaction = this.transactionObject();
+                        cmd.Transaction = this._transaction;
                     }
 
                     using (IDataReader reader = cmd.ExecuteReader())
