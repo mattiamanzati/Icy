@@ -427,6 +427,16 @@ public function when($concrete)
      * @param  array   $parameters
      * @return mixed
      */
+        public TAbstract make<TAbstract>(params object[] parameters)
+        {
+            var parameters1 = new Dictionary<string, object>();
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                parameters1[i.ToString()] = parameters[i];
+            }
+            return (TAbstract)this.make(typeof(TAbstract), parameters1);
+        }
+
         public TAbstract make<TAbstract>(Dictionary<string, object> parameters = null)
         {
             return (TAbstract)this.make(typeof(TAbstract), parameters);

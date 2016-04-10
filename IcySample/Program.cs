@@ -58,9 +58,7 @@ namespace IcySample
             app.bind<IRoarrer, Roarrer>();
             app.bind<ILion, Lion>();
 
-            var i = app.make<ILion>(new Dictionary<string, object>() {
-                {"0", 100 } // change the volume to 100
-            });
+            var i = app.make<ILion>(100);
             i.scarePeople(); // OUTPUT: ROAR!!!
         }
     }
