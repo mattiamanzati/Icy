@@ -7,7 +7,7 @@ using Icy.Foundation;
 namespace Icy.Database
 {
     // 7310ce4  on 11 Dec 2015
-    public class DatabaseManager
+    public class DatabaseManager: ConnectionResolverInterface
     {
             /**
      * The application instance.
@@ -51,7 +51,7 @@ namespace Icy.Database
      * @param  string  $name
      * @return \Illuminate\Database\Connection
      */
-    public virtual Connection connection(string name = null)
+    public virtual ConnectionInterface connection(string name = null)
     {
         string[] p = this.parseConnectionName(name);
         name = p[0];
@@ -107,7 +107,7 @@ namespace Icy.Database
      * @param  string  $name
      * @return \Illuminate\Database\Connection
      */
-    public virtual Connection reconnect(string name = null)
+    public virtual ConnectionInterface reconnect(string name = null)
     {
         name = name ?? this.getDefaultConnection();
         this.disconnect(name);
