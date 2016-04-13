@@ -207,7 +207,7 @@ namespace Icy.Database
         // connection configurations and get the configurations for the given name.
         // If the configuration doesn't exist, we'll throw an exception and bail.
 
-        Dictionary<string, ApplicationDatabaseConnectionConfig> connections = this._app.config<ApplicationDatabaseConfig>().connections;
+        Dictionary<string, ApplicationDatabaseConnectionConfig> connections = this._app.make<ApplicationDatabaseConfig>().connections;
         if (!connections.ContainsKey(name)) {
             throw new Exception("Database [" + name + "] not configured.");
         }
@@ -220,7 +220,7 @@ namespace Icy.Database
      */
     public virtual string getDefaultConnection()
     {
-        return this._app.config<ApplicationDatabaseConfig>().defaults;
+        return this._app.make<ApplicationDatabaseConfig>().defaults;
     }
     /**
      * Set the default connection name.
@@ -230,7 +230,7 @@ namespace Icy.Database
      */
     public virtual void setDefaultConnection(string name)
     {
-        this._app.config<ApplicationDatabaseConfig>().defaults = name;
+        this._app.make<ApplicationDatabaseConfig>().defaults = name;
     }
 
     /**

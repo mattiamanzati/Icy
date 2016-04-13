@@ -10,9 +10,11 @@ namespace Icy.Database.Connectors
     public class ConnectionFactory
     {
 
+        protected Application app;
+
         public ConnectionFactory(Application app)
         {
-
+            this.app = app;
         }
 
         /**

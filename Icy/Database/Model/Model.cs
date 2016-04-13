@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Icy.Foundation;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -205,5 +206,12 @@ namespace Icy.Database.Model
          * @var string
          */
         const string UPDATED_AT = "updated_at";
+
+        protected Application app;
+
+        public Model(Application app)
+        {
+            this.app = app;
+        }
     }
 }
