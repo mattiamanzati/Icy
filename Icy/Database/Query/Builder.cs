@@ -1719,8 +1719,8 @@ namespace Icy.Database.Query
             this._bindingBackups["select"] = this._bindings["select"];
 
             this._orders = null;
-            this._limit = null;
-            this._offset = null;
+            this._limit = 0;
+            this._offset = 0;
             this._columns = null;
             this._bindings["order"] = new object[0];
             this._bindings["select"] = new object[0];
@@ -1751,7 +1751,7 @@ namespace Icy.Database.Query
         protected void restoreFieldsForCount()
         {
             this._orders = (OrderOptions[]) this._backups["orders"];
-            this._limit = (int?) this._backups["limit"];
+            this._limit = (int?)this._backups["limit"];
             this._offset = (int?) this._backups["offset"];
             this._columns = (object[]) this._backups["columns"];
             this._bindings["order"] = (object[]) this._bindingBackups["order"];

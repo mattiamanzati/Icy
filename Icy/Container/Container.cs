@@ -268,7 +268,7 @@ public function when($concrete)
          * @param  \Closure|string|null  $concrete
          * @return void
          */
-        public void singleton<TAbstract, TConcrete>(Func<Container, Dictionary<string, object>, object> concrete = null) where TConcrete : TAbstract
+        public void singleton<TAbstract>(Func<Container, Dictionary<string, object>, object> concrete = null)
         {
             this.bind(typeof(TAbstract), concrete, true);
         }
@@ -821,5 +821,37 @@ public function when($concrete)
             }
         }
 
+
+        public object this[Type t]
+        {
+            /**
+             * Get the value at a given offset.
+             *
+             * @param  string  $key
+             * @return mixed
+             */
+            get { return this.make(t); }
+
+            /**
+             * Set the value at a given offset.
+             *
+             * @param  string  $key
+             * @param  mixed   $value
+             * @return void
+             */
+            set
+            {
+                if (value is Func<Container, Dictionary<string, object>, object>)
+                {
+                    this.bind(t, (Func<Container, Dictionary<string, object>, object>)value);
+                }
+                else
+                {
+                    this.bind(t, (c, o) => value);
+                }
+            }
+        }
+
     }
+
 }

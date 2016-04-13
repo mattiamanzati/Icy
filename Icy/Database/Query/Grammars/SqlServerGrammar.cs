@@ -68,7 +68,7 @@ namespace Icy.Database.Query.Grammars
         // If there is a limit on the query, but not an offset, we will add the top
         // clause to the query, which serves as a "limit" type clause within the
         // SQL Server system similar to the limit keywords available in MySQL.
-        if (query._limit > 0 && query._offset <= 0) {
+        if (query._limit > 0 && (query._offset <= 0 || query._offset == null)) {
             select += "top " + query._limit + " ";
         }
 

@@ -9,6 +9,12 @@ namespace Icy.Database.Connectors
     // f706250  5 Gen 2016
     public class ConnectionFactory
     {
+
+        public ConnectionFactory(Application app)
+        {
+
+        }
+
         /**
          * Establish a PDO connection based on the configuration.
          *
