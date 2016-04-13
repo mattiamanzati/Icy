@@ -7,7 +7,7 @@ using System.Text;
 namespace Icy.Foundation
 {
 
-    public class Application : Icy.Container.Container
+    public class Application : Icy.Container.Container<Application>
     {
         /**
          * The Laravel framework version.

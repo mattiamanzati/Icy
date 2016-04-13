@@ -43,7 +43,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Container\Container.cs" />
-    <Compile Include="Container\IContainer.cs" />
     <Compile Include="Database\Config.cs" />
     <Compile Include="Database\Connection.cs" />
     <Compile Include="Database\ConnectionInterface.cs" />

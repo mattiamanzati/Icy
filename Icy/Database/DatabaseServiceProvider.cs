@@ -15,9 +15,9 @@ namespace Icy.Database
 
         public override void register()
         {
-            this.app.singleton<ConnectionFactory>((app, o) => new ConnectionFactory((Application)app));
-            this.app.singleton<DatabaseManager>((app, o) => new DatabaseManager((Application)app, app.make<ConnectionFactory>()));
-            this.app.bind<Connection, Connection>((app, o) => app.make<DatabaseManager>().connection());
+            this.app.singleton<ConnectionFactory>((app, o) => new ConnectionFactory(app));
+            this.app.singleton<DatabaseManager>((app, o) => new DatabaseManager(app, app.make<ConnectionFactory>()));
+            this.app.bind<Connection>((app, o) => app.make<DatabaseManager>().connection());
         }
 
         public override void boot()
