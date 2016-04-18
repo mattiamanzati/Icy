@@ -59,6 +59,7 @@
     <Compile Include="Database\Model\Builder.cs" />
     <Compile Include="Database\Model\MassAssignmentException.cs" />
     <Compile Include="Database\Model\Model.cs" />
+    <Compile Include="Database\Model\ModelStorage.cs" />
     <Compile Include="Database\Model\Scope.cs" />
     <Compile Include="Database\QueryException.cs" />
     <Compile Include="Database\Query\Builder.cs" />

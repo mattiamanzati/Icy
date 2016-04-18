@@ -52,7 +52,7 @@ namespace Icy.Database.Model
          *
          * @var array
          */
-        protected Dictionary<string, Scope<T>> _scopes = new Dictionary<string, Scope<T>>();
+        protected Dictionary<string, IScope> _scopes = new Dictionary<string, IScope>();
         /**
          * Create a new Eloquent query builder instance.
          *

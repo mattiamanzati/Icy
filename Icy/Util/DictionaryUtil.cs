@@ -18,6 +18,11 @@ namespace Icy.Util
             return result.ToArray();
         }
 
+        public static Dictionary<K, V> copy<K, V>(Dictionary<K, V> current)
+        {
+            return new Dictionary<K,V>(current);
+        }
+
 
         public static K[] keys<K, V>(Dictionary<K, V> dict)
         {

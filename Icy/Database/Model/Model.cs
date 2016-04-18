@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Icy.Util;
 
 namespace Icy.Database.Model
 {
@@ -146,48 +147,7 @@ namespace Icy.Database.Model
          */
         // TODO: Is this really needed?
         //public $wasRecentlyCreated = false;
-        /**
-         * Indicates whether attributes are snake cased on arrays.
-         *
-         * @var bool
-         */
-        public static bool _snakeAttributes = true;
-        /**
-         * The connection resolver instance.
-         *
-         * @var \Illuminate\Database\ConnectionResolverInterface
-         */
-        protected static ConnectionResolverInterface _resolver;
-        /**
-         * The event dispatcher instance.
-         *
-         * @var \Illuminate\Contracts\Events\Dispatcher
-         */
-        protected static object _dispatcher;
-        /**
-         * The array of booted models.
-         *
-         * @var array
-         */
-        protected static Dictionary<Type, bool> _booted = new Dictionary<Type, bool>();
-        /**
-         * The array of global scopes on the model.
-         *
-         * @var array
-         */
-        protected static Dictionary<Type, Dictionary<Type, Scope<T>>> _globalScopes = new Dictionary<Type, Dictionary<Type, Scope<T>>>();
-        /**
-         * Indicates if all mass assignment is enabled.
-         *
-         * @var bool
-         */
-        protected static bool _unguarded = false;
-        /**
-         * The cache of the mutated attributes for each class.
-         *
-         * @var array
-         */
-        protected static Dictionary<Type, string[]> _mutatorCache = new Dictionary<Type, string[]>();
+
         /**
          * The many to many relationship methods.
          *
@@ -208,10 +168,77 @@ namespace Icy.Database.Model
         const string UPDATED_AT = "updated_at";
 
         protected Application app;
+        protected ModelStorage storage;
 
-        public Model(Application app)
+        /**
+ * Create a new Eloquent model instance.
+ *
+ * @param  array  $attributes
+ * @return void
+ */
+        public Model(Application app = null, Dictionary<string, object> attributes = null)
         {
+            attributes = attributes ?? new Dictionary<string, object>();
+
             this.app = app;
+            this.storage = app.make<ModelStorage>();
+
+            this.bootIfNotBooted();
+            this.syncOriginal();
+            //this.fill(attributes);
+        }
+
+
+        /**
+         * Check if the model needs to be booted and if so, do it.
+         *
+         * @return void
+         */
+        protected void bootIfNotBooted()
+        {
+            if (!this.storage._booted.ContainsKey(this.GetType()))
+            {
+                this.storage._booted[this.GetType()] = true;
+                // $this->fireModelEvent('booting', false);
+                this.boot();
+                // $this->fireModelEvent('booted', false);
+            }
+        }
+        /**
+         * The "booting" method of the model.
+         *
+         * @return void
+         */
+        protected void boot()
+        {
+            this.bootTraits();
+        }
+        /**
+         * Boot all of the bootable traits on the model.
+         *
+         * @return void
+         */
+        protected void bootTraits()
+        {
+            foreach (var e in this.GetType().GetInterfaces())
+            {
+                var bootMethod = this.GetType().GetMethod("boot" + e.Name, System.Reflection.BindingFlags.NonPublic);
+                if (bootMethod != null)
+                {
+                    bootMethod.Invoke(this, new object[] { });
+                }
+            }
+        }
+
+        /**
+         * Sync the original attributes with the current.
+         *
+         * @return $this
+         */
+        public Model<T> syncOriginal()
+        {
+            this._original = DictionaryUtil.copy(this._attributes);
+            return this;
         }
     }
 }
