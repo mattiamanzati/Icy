@@ -43,6 +43,12 @@ namespace Icy.Foundation
          */
         protected bool _booted = false;
 
+        public Application()
+            : base()
+        {
+            this.registerBaseBindings();
+        }
+
         /*
          * Creates the app config from a XML file
          **/
@@ -125,6 +131,18 @@ namespace Icy.Foundation
         protected void bootProvider(ServiceProvider provider)
         {
             provider.boot();
+        }
+
+
+        /**
+         * Register the basic bindings into the container.
+         *
+         * @return void
+         */
+        protected void registerBaseBindings()
+        {
+            this.instance<Application>(this);
+            this.instance<Icy.Container.Container<Application>>(this);
         }
     }
 }

@@ -31,7 +31,7 @@ namespace IcySample
                 driver = "sqlsrv"
             };
 
-            app.singleton<ApplicationDatabaseConfig>((app, o) => config);
+            app.instance<ApplicationDatabaseConfig>(config);
             
             app.register(new DatabaseServiceProvider(app));
 

@@ -91,6 +91,17 @@ namespace Icy.Container
 
 
         /**
+ * Determine if the given abstract type has been bound.
+ *
+ * @param  string  $abstract
+ * @return bool
+ */
+        public bool bound(Type abstracts)
+        {
+            return this._bindings.ContainsKey(abstracts) || this._instances.ContainsKey(abstracts) || this.isAlias(abstracts);
+        }
+
+        /**
          * Determine if the given abstract type has been resolved.
          *
          * @param  string  $abstract
@@ -446,7 +457,7 @@ namespace Icy.Container
      * @param  array   $parameters
      * @return mixed
      */
-     public TAbstract make<TAbstract>(Dictionary<string, object> parameters = null)
+        public TAbstract make<TAbstract>(Dictionary<string, object> parameters = null)
         {
             return (TAbstract)this.make(typeof(TAbstract), parameters);
         }
@@ -471,7 +482,8 @@ namespace Icy.Container
             {
                 inst = this.build(concrete, parameters);
             }
-            else {
+            else
+            {
                 inst = this.make((Type)concrete, parameters);
             }
             // If we defined any extenders for this type, we'll need to spin through them
@@ -640,6 +652,40 @@ namespace Icy.Container
         public void singleton(Type abstracts, Type concrete = null)
         {
             this.bind(abstracts, concrete, true);
+        }
+
+        /**
+ * Register an existing instance as shared in the container.
+ *
+ * @param  string  $abstract
+ * @param  mixed   $instance
+ * @return void
+ */
+        public void instance<TAbstract>(object instance)
+        {
+            this.instance(typeof(TAbstract), instance);
+        }
+
+        public void instance(Type abstracts, object instance)
+        {
+            // First, we will extract the alias from the abstract if it is an array so we
+            // are using the correct name when binding the type. If we get an alias it
+            // will be registered with the container so we can resolve it out later.
+            // TODO: Register aliases
+            //if (is_array($abstract)) {
+            //    list($abstract, $alias) = $this->extractAlias($abstract);
+            //    $this->alias($abstract, $alias);
+            //}
+            //unset($this->aliases[$abstract]);
+            // We'll check to determine if this type has been bound before, and if it has
+            // we will fire the rebound callbacks registered with the container and it
+            // can be updated with consuming classes that have gotten resolved here.
+            var bound = this.bound(abstracts);
+            this._instances[abstracts] = instance;
+            if (bound)
+            {
+                this.rebound(abstracts);
+            }
         }
 
 
