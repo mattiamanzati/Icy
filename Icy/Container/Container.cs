@@ -303,8 +303,6 @@ namespace Icy.Container
             return Activator.CreateInstance(concrete1, instances);
         }
 
-
-
         /**
          * If extra parameters are passed by numeric ID, rekey them by argument name.
          *
@@ -355,7 +353,7 @@ namespace Icy.Container
                 {
                     dependencies = ArrayUtil.push(dependencies, primitives[parameter.Name]);
                 }
-                else if (!(parameter.ParameterType.IsClass || parameter.ParameterType.IsInterface))
+                else if (!(parameter.ParameterType.IsClass || parameter.ParameterType.IsInterface) || parameter.ParameterType.FullName.StartsWith("System."))
                 {
                     dependencies = ArrayUtil.push(dependencies, this.resolveNonClass(parameter));
                 }

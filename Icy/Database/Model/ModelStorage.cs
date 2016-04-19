@@ -10,10 +10,10 @@ namespace Icy.Database.Model
     public class ModelStorage
     {
         /**
- * Indicates whether attributes are snake cased on arrays.
- *
- * @var bool
- */
+         * Indicates whether attributes are snake cased on arrays.
+         *
+         * @var bool
+         */
         public bool _snakeAttributes = true;
         /**
          * The connection resolver instance.

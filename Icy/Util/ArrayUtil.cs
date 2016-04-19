@@ -27,6 +27,10 @@ namespace Icy.Util
         {
             return concat<T>(current, args);
         }
+        public static T[] prepend<T>(T[] current, params T[] args)
+        {
+            return concat<T>(args, current);
+        }
 
         public static T[] filter<T>(T[] current, Func<T, bool> matcher)
         {

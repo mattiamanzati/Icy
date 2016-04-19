@@ -56,11 +56,6 @@
     <Compile Include="Database\DatabaseServiceProvider.cs" />
     <Compile Include="Database\DataTableSupport.cs" />
     <Compile Include="Database\Grammar.cs" />
-    <Compile Include="Database\Model\Builder.cs" />
-    <Compile Include="Database\Model\MassAssignmentException.cs" />
-    <Compile Include="Database\Model\Model.cs" />
-    <Compile Include="Database\Model\ModelStorage.cs" />
-    <Compile Include="Database\Model\Scope.cs" />
     <Compile Include="Database\QueryException.cs" />
     <Compile Include="Database\Query\Builder.cs" />
     <Compile Include="Database\Query\Expression.cs" />
@@ -83,6 +78,8 @@
     <Compile Include="Support\ServiceProvider.cs" />
     <Compile Include="Util\ArrayUtil.cs" />
     <Compile Include="Util\DictionaryUtil.cs" />
+    <Compile Include="Util\MixinAttribute.cs" />
+    <Compile Include="Util\ReflectionUtil.cs" />
     <Compile Include="Util\StrUtil.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

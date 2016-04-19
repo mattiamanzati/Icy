@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Icy.Database.Model;
 
 namespace Icy.Database
 {
@@ -16,7 +15,6 @@ namespace Icy.Database
 
         public override void register()
         {
-            this.app.singleton<ModelStorage>();
             this.app.singleton<ConnectionFactory>();
             this.app.singleton<DatabaseManager>();
             this.app.bind<Connection>((app, o) => app.make<DatabaseManager>().connection());
