@@ -147,6 +147,11 @@ namespace Icy.Database
             });
         }
 
+        public override int transactionLevel()
+        {
+            return this._transactions;
+        }
+
         public override int affectingStatement(string query, object[] bindings = null)
         {
             return this.run(query, bindings, (conn, query1, bindings1) =>

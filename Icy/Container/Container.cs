@@ -160,6 +160,10 @@ namespace Icy.Container
 */
 
 
+            public void bind<TAbstract, TConcrete>(bool shared = false)
+        {
+            this.bind(typeof(TAbstract), typeof(TConcrete), shared);
+        }
         public void bind<TAbstract>(object concrete = null, bool shared = false)
         {
             this.bind(typeof(TAbstract), concrete, shared);
