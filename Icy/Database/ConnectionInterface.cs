@@ -136,6 +136,8 @@ namespace Icy.Database
         QueryLogItem[] pretend(Func<Connection, object> callback);
 
         BaseGrammar getQueryGrammar();
-        BaseProcessor getPostProcessor(); 
+        BaseProcessor getPostProcessor();
+        Builder query();
+        Schema.Builder getSchemaBuilder();
     }
 }
