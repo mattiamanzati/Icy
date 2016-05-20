@@ -1,10 +1,7 @@
 ﻿using Icy.Util;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Icy.Container
 {
@@ -389,8 +386,13 @@ namespace Icy.Container
                 }
             }
             */
-            if (parameter.HasDefaultValue)
+#if ICY_NET20
+            if (parameter.DefaultValue != null)
             {
+#else
+            if(parameter.HasDefaultValue)
+            {
+#endif
                 return parameter.DefaultValue;
             }
             string message = string.Format("Unresolvable dependency resolving {0} in class {1}", parameter.Name, parameter.Member.DeclaringType.FullName);
